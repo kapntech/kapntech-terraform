@@ -1,8 +1,0 @@
-name: 'Terraform Plan'
-
-on:
-  pull_request:
-
-env:
-  TF_CLOUD_ORGANIZATION: "Kapntech"
-  TF_API_TOKEN: 
