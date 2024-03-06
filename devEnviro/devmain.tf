@@ -9,7 +9,7 @@ terraform {
   cloud {
     organization = "Kapntech"
     workspaces {
-      name = "kapntech-terraform"
+      name = "kapntech-dev"
 
     }
   }
