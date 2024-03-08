@@ -104,10 +104,10 @@ resource "azurerm_linux_virtual_machine" "linux" {
   }
 
   tags = {
-    Enviro = "PROD"
-    environment = "dev"
+    Enviro            = "PROD"
+    environment       = "dev"
     ssScheduleEnabled = "true"
-    ssScheduleUse = "WeekendsIST"
+    ssScheduleUse     = "WeekendsIST"
   }
 }
 
@@ -138,10 +138,10 @@ resource "azurerm_linux_virtual_machine" "linux2" {
   }
 
   tags = {
-    Enviro = "PROD"
-    environment = "staging"
+    Enviro            = "PROD"
+    environment       = "staging"
     ssScheduleEnabled = "true"
-    ssScheduleUse = "WeekendsIST"
+    ssScheduleUse     = "WeekendsIST"
   }
 }
 
@@ -185,6 +185,61 @@ resource "azurerm_storage_account" "storaccount1" {
 
 resource "azurerm_storage_container" "storaccount1cont1" {
   name                  = "csvs"
-  storage_account_name = azurerm_storage_account.storaccount1.name
+  storage_account_name  = azurerm_storage_account.storaccount1.name
   container_access_type = "private"
+}
+
+resource "azurerm_automation_account" "automationacct1" {
+  name                = "autoss-runbook-aa"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  sku_name            = "Basic"
+}
+
+data "local_file" "runbookpsinfo" {
+  filename = "${path.module}/autoss-getinfo.ps1"
+}
+
+data "local_file" "runbookpsstart" {
+  filename = "${path.module}/autoss-start.ps1"
+}
+
+data "local_file" "runbookpsstop" {
+  filename = "${path.module}/autoss-stop.ps1"
+}
+
+resource "azurerm_automation_runbook" "runbookpsinfo" {
+  name                    = "autoss-getinfo"
+  location                = azurerm_resource_group.rg.location
+  resource_group_name     = azurerm_resource_group.rg.name
+  automation_account_name = azurerm_automation_account.automationacct1.name
+  runbook_type            = "PowerShell72"
+  log_verbose             = "false"
+  log_progress            = "true"
+
+  content = data.local_file.runbookpsinfo.content
+}
+
+resource "azurerm_automation_runbook" "runbookpsstart" {
+  name                    = "autoss-start"
+  location                = azurerm_resource_group.rg.location
+  resource_group_name     = azurerm_resource_group.rg.name
+  automation_account_name = azurerm_automation_account.automationacct1.name
+  runbook_type            = "PowerShell72"
+  log_verbose             = "false"
+  log_progress            = "true"
+
+  content = data.local_file.runbookpsstart.content
+}
+
+resource "azurerm_automation_runbook" "runbookpsstop" {
+  name                    = "autoss-stop"
+  location                = azurerm_resource_group.rg.location
+  resource_group_name     = azurerm_resource_group.rg.name
+  automation_account_name = azurerm_automation_account.automationacct1.name
+  runbook_type            = "PowerShell72"
+  log_verbose             = "false"
+  log_progress            = "true"
+
+  content = data.local_file.runbookpsstop.content
 }

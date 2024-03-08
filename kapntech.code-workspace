@@ -6,6 +6,13 @@
         {
             "name": "kpt-tf-monrepo-multibranch",
             "path": "../kpt-tf-monrepo-multibranch"
+        },
+        {
+            "path": "../learn-terraform-cloud"
+        },
+        {
+            "name": "learn-terraform-cloud-1",
+            "path": "../learn-terraform-cloud-1"
         }
     ]
 }
