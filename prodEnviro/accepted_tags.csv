@@ -1,0 +1,9 @@
+TagName,TagValue,TimeZone
+ESTUSDailyStart,10,Eastern Standard Time
+ESTUSDailyStop,3,Eastern Standard Time
+CSTUSDailyStop,16,Central Standard Time
+CSTUSDailyStart,9,Central Standard Time
+MSTUSDailyStop,2,Mountain Standard Time
+MSTUSDailyStart,8,Mountain Standard Time
+PSTUSDailyStop,7,Pacific Standard Time
+PSTUSDailyStart,1,Pacific Standard Time
