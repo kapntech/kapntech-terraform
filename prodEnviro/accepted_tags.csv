@@ -1,9 +1,13 @@
 TagName,TagValue,TimeZone
-ESTUSDailyStart,10,Eastern Standard Time
+ESTUSDailyStart,16,Eastern Standard Time (Mexico)
 ESTUSDailyStop,3,Eastern Standard Time
 CSTUSDailyStop,16,Central Standard Time
-CSTUSDailyStart,9,Central Standard Time
+CSTUSDailyStart,15,Central Standard Time
 MSTUSDailyStop,2,Mountain Standard Time
-MSTUSDailyStart,8,Mountain Standard Time
+MSTUSDailyStart,11,Mountain Standard Time
 PSTUSDailyStop,7,Pacific Standard Time
-PSTUSDailyStart,1,Pacific Standard Time
+PSTUSDailyStart,13,Pacific Standard Time
+
+*Create master file with all the tags and time zone values
+Remove TagValue from CSV
+Add active/in use column specify whether to evaluate for acceptedTag

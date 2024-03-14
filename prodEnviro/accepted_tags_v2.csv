@@ -1,0 +1,9 @@
+TagName,DisplayName,Active
+ESTUSDailyStart,(UTC-05:00) Eastern Time (US & Canada),TRUE
+ESTUSDailyStop,(UTC-05:00) Eastern Time (US & Canada),FALSE
+CSTUSDailyStop,(UTC-06:00) Central Time (US & Canada),TRUE
+CSTUSDailyStart,(UTC-06:00) Central Time (US & Canada),TRUE
+MSTUSDailyStop,(UTC-07:00) Mountain Time (US & Canada),TRUE
+MSTUSDailyStart,(UTC-07:00) Mountain Time (US & Canada),TRUE
+PSTUSDailyStop,(UTC-08:00) Pacific Time (US & Canada),TRUE
+PSTUSDailyStart,(UTC-08:00) Pacific Time (US & Canada),TRUE
