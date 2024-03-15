@@ -147,6 +147,8 @@ foreach ($subscription in $allEnabledSubscriptions) {
     # Get all VMs in the subscription
     $vms = Get-AzVM
 
+
+
     # Loop through each VM
     foreach ($vm in $vms) {
         $tags = $vm.Tags.GetEnumerator()
@@ -241,3 +243,74 @@ $timezone = get-timezone -name * | Where-Object { $_.DisplayName -eq $tzdisplayn
 Set-TimeZone -Id $timezone.Id
 
 Set-TimeZone -Id (get-timezone -name * | Where-Object { $_.DisplayName -eq $tzdisplayname } | select -expand "Id")
+
+
+
+
+az vm list --show-details --query '[].{Name:name, Tags:tags}'
+
+
+
+
+function Get-DecimalTime {
+    $time = Get-Date -Format "HH:mm"
+    return [int]$time.Substring(0, 2) + [int]($time.Substring(3, 2)) / 100
+}
+
+function CreateTaggedVMObject {
+    param (
+        [Parameter(Mandatory = $true)]$vm,
+        [Parameter(Mandatory = $true)]$subscription,
+        [Parameter(Mandatory = $true)]$tag
+    )
+    return [PSCustomObject]@{
+        VMName            = $vm.Name
+        SubscriptionId    = $subscription.Id
+        ResourceGroupName = $vm.ResourceGroupName
+        TagName           = $tag.Key
+        TagValue          = $tag.Value
+    }
+}
+
+# Import the CSV containing tag names and corresponding time zones
+$tagSheet = Import-Csv -Path "C:\!repos\kapntech-terraform\prodEnviro\accepted_tags_v2.csv"
+
+# Get all enabled subscriptions
+$allEnabledSubscriptions = @(Get-AzSubscription | Where-Object { $_.State -eq "Enabled" })
+
+# Array to store tagged VMs
+$taggedVMs = @()
+
+# Loop through each subscription
+foreach ($subscription in $allEnabledSubscriptions) {
+    Set-AzContext -Subscription $subscription.Id
+
+    # Get all VMs in the subscription
+    $vms = Get-AzVM
+
+    # Loop through each VM
+    foreach ($vm in $vms) {
+        $tags = $vm.Tags.GetEnumerator()
+        foreach ($tag in $tags) {
+            # Check if the tag name is in the tag sheet
+            $matchingTag = $tagSheet | Where-Object { $_.TagName -eq $tag.Key }
+            if ($matchingTag) {
+                # Set the local time to the corresponding time zone
+                Set-TimeZone -Id $matchingTag.TimeZone
+
+                # Get the current time in decimal format
+                $decimalTime = Get-DecimalTime
+
+                # Check if the tag value is within 1 hour of the decimal time
+                [int]$t0 = $matchingTag.TagValue
+                [int]$t1 = [int]$t0 + 1
+                if ($decimalTime -ge $matchingTag.TagValue -and $decimalTime -lt [int]$t1) {
+                    # Create a tagged VM object and add it to the array
+                    $taggedVMs += CreateTaggedVMObject -vm $vm -subscription $subscription -tag $tag
+                }
+            }
+        }
+    }
+}
+
+# $taggedVMs now contains all virtual machines that match the criteria
