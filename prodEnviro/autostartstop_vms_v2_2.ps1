@@ -1,4 +1,3 @@
-
 function Get-DecimalTime {
     $time = Get-Date -Format "HH:mm"
     return [int]$time.Substring(0, 2) + [int]($time.Substring(3, 2)) / 100
@@ -30,11 +29,12 @@ foreach ($tagEntry in $acceptedTagsListActive) {
     $decimalTime = [math]::Floor($decimalTime)
     $upperTime = $decimalTime + 1
     Write-Host "Current time in decimal format: $decimalTime"
-    $decimalTimeValue = New-Object "PSCustomObject"
-    $decimalTimeValue | Add-Member -MemberType NoteProperty -Name "TagName" -Value $tagEntry.TagName
-    $decimalTimeValue | Add-Member -MemberType NoteProperty -Name "DisplayName" -Value $tagEntry.DisplayName
-    $decimalTimeValue | Add-Member -MemberType NoteProperty -Name "TargetTagValue" -Value $decimalTime
-    $decimalTimeValue | Add-Member -MemberType NoteProperty -Name "UpperTimeValue" -Value $upperTime
+    $decimalTimeValue = [PSCustomObject]@{
+        "TagName" = $tagEntry.TagName
+        "DisplayName" = $tagEntry.DisplayName
+        "TargetTagValue" = $decimalTime
+        "UpperTimeValue" = $upperTime
+    }
     $targetTags += $decimalTimeValue
 }
 
@@ -63,4 +63,3 @@ foreach ($sub in $targetSubs) {
         }
     }
 }
-

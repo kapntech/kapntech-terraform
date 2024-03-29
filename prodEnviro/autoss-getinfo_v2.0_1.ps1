@@ -296,6 +296,7 @@ foreach ($subscription in $allEnabledSubscriptions) {
             $matchingTag = $tagSheet | Where-Object { $_.TagName -eq $tag.Key }
             if ($matchingTag) {
                 # Set the local time to the corresponding time zone
+                Set-TimeZone -Id (get-timezone -name * | Where-Object { $_.DisplayName -eq $tzdisplayname } | Select-Object -expand "Id")
                 Set-TimeZone -Id $matchingTag.TimeZone
 
                 # Get the current time in decimal format
@@ -313,4 +314,11 @@ foreach ($subscription in $allEnabledSubscriptions) {
     }
 }
 
+
+
+
+
+
 # $taggedVMs now contains all virtual machines that match the criteria
+
+

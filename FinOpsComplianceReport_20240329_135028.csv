@@ -1,0 +1,3 @@
+"ResourceType","DefinitionName","ResourceName","SubscriptionID","AssignmentName","ComplianceState"
+"Microsoft.Compute/virtualMachines","e18503f9-e4dd-47ea-9605-3122e060483f","linux-vm2","90da72fd-4e8b-4566-8304-2c234f193ea5","ec6c767bc0224467ae78b115","NonCompliant"
+"Microsoft.Compute/virtualMachines","e18503f9-e4dd-47ea-9605-3122e060483f","linux-vm","90da72fd-4e8b-4566-8304-2c234f193ea5","ec6c767bc0224467ae78b115","NonCompliant"
