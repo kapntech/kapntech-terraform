@@ -17,49 +17,54 @@ terraform {
 
 provider "azurerm" {
   features {}
-  subscription_id = "cda608ef-aa8d-4a29-be84-dfa63fde334d"
+  subscription_id = "var.subscription_id"
+}
+
+locals {
+  current_time           = timestamp()
+  tomorrow               = timeadd(local.current_time, "var.avd_host_pool_registration_expiration_date_length")
 }
 
 resource "azurerm_resource_group" "avdprod" {
-  name     = "avd-rg"
-  location = "southcentralus"
+  name     = "rg-${var.avd_resource_group_name_suffix}"
+  location = "var.location"
   provider = azurerm
 }
 
 resource "azure_virtual_desktop_workspace" "avd" {
-  name                = "avd-remoteapps-workspace"
+  name                = "vdws-${var.avd_workspace_name_suffix}"
   location            = azurerm_resource_group.avdprod.location
   resource_group_name = azurerm_resource_group.avdprod.name
-  friendly_name       = "AVD RemoteApps Workspace"
-  description         = "AVD RemoteApps Workspace"
+  friendly_name       = "var.avd_workspace_friendly_name"
+  description         = "var.avd_workspace_description"
   provider            = azurerm
 }
 
 resource "azurerm_virtual_desktop_host_pool" "avdhp1" {
   resource_group_name = azurerm_resource_group.avdprod.name
   location = azurerm_resource_group.avdprod.location
-  name = "avd-remoteapps-hostpool"
-  friendly_name = "AVD RemoteApps Hostpool"
-  validate_environment = false
-  type = "Pooled"
-  maximum_sessions_allowed = "3"
-  load_balancer_type = "DepthFirst"
+  name = "vdpool-${var.avd_host_pool_name_suffix}"
+  friendly_name = "var.avd_host_pool_friendly_name"
+  validate_environment = "var.avd_host_pool_validate_environment"
+  type = "var.avd_host_pool_type"
+  maximum_sessions_allowed = "var.avd_host_pool_maximum_sessions_allowed"
+  load_balancer_type = "var.avd_host_pool_load_balancer_type"
 }
 
 resource "azurerm_virtual_desktop_host_pool_registration_info" "avdreginfo1" {
   hostpool_id = azurerm_virtual_desktop_host_pool.avdhp1.id
-  expiration_date = "2024-03-01T23:40:52Z"
+  expiration_date = "local.tomorrow"
 }
 
 resource "azurerm_virtual_desktop_application_group" "avdag1" {
   resource_group_name = azurerm_resource_group.avdprod.name
   location = azurerm_resource_group.avdprod.location
-  name = "avd-remoteapps-appgroup"
-  friendly_name = "AVD RemoteApps Application Group"
-  description = "AVD RemoteApps Application Group"
+  name = "vdag-${var.avd_application_group_name_suffix}"
+  friendly_name = "var.avd_application_group_friendly_name"
+  description = "var.avd_application_group_description"
   host_pool_id = azurerm_virtual_desktop_host_pool.avdhp1.id
   provider = azurerm
-  type = "RemoteApp"
+  type = "var.avd_application_group_type"
 }
 
 resource "azurerm_virtual_desktop_workspace_application_group_association" "avdappgroupassoc1" {
@@ -70,7 +75,7 @@ resource "azurerm_virtual_desktop_workspace_application_group_association" "avda
 }
 
 resource "azurerm_virtual_network" "vnetavd" {
-  name                = "avd-vnet"
+  name                = "vnet-${var.avd_vnet_name_suffix}"
   location            = azurerm_resource_group.avdprod.location
   resource_group_name = azurerm_resource_group.avdprod.name
   address_space       = ["10.0.0.0/16"]
@@ -78,15 +83,46 @@ resource "azurerm_virtual_network" "vnetavd" {
 }
 
 resource "azurerm_subnet" "avdsubnet" {
-  name                 = "internal"
+  name                 = "snet-${var.avd_subnet_name_suffix}"
   resource_group_name  = azurerm_resource_group.avdprod.name
   virtual_network_name = azurerm_virtual_network.vnetavd.name
-  address_prefixes     = ["10.0.1.0/24"]
+  address_prefixes     = "var.avd_subnet_address_prefixes"
   provider             = azurerm
 }
 
+resource "azurerm_windows_virtual_machine" "avdwin" {
+  name                            = "vm-${var.avd_host_pool_session_host_vm_name_suffix}"
+  resource_group_name             = azurerm_resource_group.avdprod.name
+  location                        = azurerm_resource_group.avdprod.location
+  size                            = "var.avd_host_pool_session_host_vm_size"
+  priority                        = "var.vm_priority"
+  eviction_policy                 = "var.vm_eviction_policy"
+  admin_username                  = "var.vm_admin_username"
+  admin_password                  = "var.vm_admin_password"
+  network_interface_ids = [
+    azurerm_network_interface.nicavd1.id,
+  ]
+
+  os_disk {
+    caching              = "var.os_disk_caching"
+    storage_account_type = "var.os_disk_storage_account_type"
+  }
+
+  source_image_reference {
+    publisher = "var.vm_publisher"
+    offer     = "var.vm_offer"
+    sku       = "var.vm_sku"
+    version   = "var.vm_version"
+  }
+
+  tags = {
+    Enviro            = "PROD"
+    environment       = "AVD"
+  }
+}
+
 resource "azurerm_network_interface" "nicavd1" {
-  name                = "windows-nic2"
+  name                = "nic${count.index}-azure_rm_virtual_machine.avdwin"
   location            = azurerm_resource_group.avdprod.location
   resource_group_name = azurerm_resource_group.avdprod.name
 
@@ -100,40 +136,6 @@ resource "azurerm_network_interface" "nicavd1" {
     Enviro = "PROD"
   }
 }
-
-resource "azurerm_windows_virtual_machine" "avdwin" {
-  name                            = "avdwin-vm"
-  resource_group_name             = azurerm_resource_group.avdprod.name
-  location                        = azurerm_resource_group.avdprod.location
-  size                            = "Standard_DS1_v2"
-  priority                        = "Spot"
-  eviction_policy                 = "Deallocate"
-  admin_username                  = "azadmin"
-  admin_password                  = "Radmin@1q2w#E$R"
-  network_interface_ids = [
-    azurerm_network_interface.nicavd1.id,
-  ]
-
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-  }
-
-  source_image_reference {
-    publisher = "MicrosoftWindowsDesktop"
-    offer     = "Windows-10"
-    sku       = "20h2-evd"
-    version   = "latest"
-  }
-
-  tags = {
-    Enviro            = "PROD"
-    environment       = "prod"
-    ssScheduleEnabled = "true"
-    ssScheduleUse     = "WeekendsIST"
-  }
-}
-
 
 resource "azurerm_dev_test_global_vm_shutdown_schedule" "devtestshutdownprod" {
   virtual_machine_id = azurerm_windows_virtual_machine.avdwin.id

@@ -94,6 +94,28 @@ $ResourceCompliance = $FinOpsDefinitions | ForEach-Object {
     Get-AzPolicyState -PolicyAssignmentName $_.Name
 }
 
+$assigndefsarray = @()
+foreach($def in $FinOpsDefinitions){
+    $assignDefs = Get-AzPolicyAssignment -PolicyDefinitionId $def.PolicyDefinitionId
+    $assigndefsarray += $assignDefs
+}
+
+
+$resComp = @()
+foreach($assignmentdefs in $assigndefsarray){
+    $state = Get-AzPolicyState -PolicyAssignmentName $assignmentdefs.Name
+    $resComp += $state
+}
+
+foreach($i in 0..($assigndefsarray.Count -1)){
+    $sheetName = $assigndefsarray[$i].Name
+    $sheetName = $resComp | Where-Object { $_.PolicyAssignmentName -eq $assigndefsarray[$i].Name }
+    $assignmentResComp[$i] | Export-Excel -Path "$xlsxReportName" -WorksheetName $sheetName
+}
+
+
+Get-AzPolicyState -PolicyAssignmentName 6197c70d4e254a5c98189d60
+
 $assignments = @()
 foreach ($definition in $FinOpsDefinitions){
     $assignments += Get-AzPolicyAssignment -PolicyDefinitionId $definition.PolicyDefinitionId
@@ -102,7 +124,9 @@ foreach ($definition in $FinOpsDefinitions){
 $baseName = "assign"
 foreach ($i in 0..($assignments.Count - 1)){
     $sheetName = $assignments[$i].Name
-    $assignments[$i] | Export-Excel -Path "$xlsxReportName" -WorksheetName $sheetName
+    $assignmentdefs = Get-AzPolicyState -PolicyAssignmentName $assignments[$i].Name
+    Get-AzPolicyState -PolicyAssignmentName 6197c70d4e254a5c98189d60
+   #$assignments[$i] | Export-Excel -Path "$xlsxReportName" -WorksheetName $sheetName
 }
 
 

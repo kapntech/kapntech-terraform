@@ -5,6 +5,17 @@
         },
         {
             "path": "../../!hashicorp"
+        },
+        {
+            "name": "kapntech-epac",
+            "path": "../kapntech-epac"
+        },
+        {
+            "name": "enterprise-azure-policy-as-code-1",
+            "path": "../enterprise-azure-policy-as-code-1"
         }
-    ]
+    ],
+    "settings": {
+        "powershell.cwd": "kapntech-terraform"
+    }
 }

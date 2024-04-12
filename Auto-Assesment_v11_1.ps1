@@ -807,6 +807,7 @@ foreach ($ExServer in $ExServers) {
             $ExRepObj | Add-Member -NotePropertyName 'Client Access Server' -NotePropertyValue "No"
         }
         #Receive Connectors ####
+        
         $LogLine = "Getting Receive Connectors information for $($ExServer.Name)"
         $Global:LogArray += New-LogEntry -EventType "Informational" -Stage $Stages[2] -Step $Steps[9] -Details $LogLine
         $ReceiveConnectors = Get-ReceiveConnector
