@@ -15,6 +15,17 @@ terraform {
   }
 }
 
+data "terraform_remote_state" "avdInfra" {
+  backend = "remote"
+
+  config = {
+    organization = "Kapntech"
+    workspaces = {
+      name = "kapntech-avd-infra"
+    }
+  }
+}
+
 provider "azurerm" {
   features {}
   subscription_id = var.adds_subscription_id
@@ -31,6 +42,14 @@ resource "azurerm_virtual_network" "vnetadds" {
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.addsprod.location
   resource_group_name = azurerm_resource_group.addsprod.name
+  dns_servers         = var.adds_vnet_dns_servers
+}
+
+resource "azurerm_virtual_network_peering" "peerADDStoAVD" {
+  name                      = "peer-${var.adds_vnet_name_suffix}-to-${var.avd_vnet_name_suffix}"
+  resource_group_name       = azurerm_resource_group.addsprod.name
+  virtual_network_name      = azurerm_virtual_network.vnetadds.name
+  remote_virtual_network_id = data.terraform_remote_state.avdInfra.outputs.vnetavd_id
 }
 
 # Create a subnet
@@ -62,7 +81,7 @@ resource "azurerm_network_security_group" "addsvnetnsg" {
     protocol                   = "*"
     source_port_range          = "*"
     destination_port_range     = "3389"
-    source_address_prefix      = "*"
+    source_address_prefix      = "73.77.90.110"
     destination_address_prefix = "*"
   }
 }
@@ -83,6 +102,7 @@ resource "azurerm_network_interface" "nicadds" {
     name                          = "nic${count.index + 1}_config"
     subnet_id                     = azurerm_subnet.addssubnet.id
     private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = "/subscriptions/90da72fd-4e8b-4566-8304-2c234f193ea5/resourceGroups/rg-adds/providers/Microsoft.Network/publicIPAddresses/pip-kptdc1"
   }
 
   depends_on = [

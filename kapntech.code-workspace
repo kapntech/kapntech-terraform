@@ -13,6 +13,9 @@
         {
             "name": "enterprise-azure-policy-as-code-1",
             "path": "../enterprise-azure-policy-as-code-1"
+        },
+        {
+            "path": "../kpt-tf-network-module"
         }
     ],
     "settings": {

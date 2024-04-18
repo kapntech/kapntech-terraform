@@ -3,26 +3,6 @@ output "location" {
   value       = azurerm_resource_group.avdprod.location
 }
 
-output "azurerm_virtual_desktop_host_pool" {
-  description = "Name of the Azure Virtual Desktop host pool"
-  value       = azurerm_virtual_desktop_host_pool.avdhp1.name
-}
-
-output "azurerm_virtual_desktop_application_group" {
-  description = "Name of the Azure Virtual Desktop DAG"
-  value       = azurerm_virtual_desktop_application_group.avdag1.name
-}
-
-output "azurerm_virtual_desktop_workspace" {
-  description = "Name of the Azure Virtual Desktop workspace"
-  value       = azurerm_virtual_desktop_workspace.avd.name
-}
-
-output "AVD_user_groupname" {
-  description = "Azure Active Directory Group for AVD users"
-  value       = azuread_group.aad_group.display_name
-}
-
 output "session_host_count" {
   description = "The number of VMs created"
   value       = var.avd_rdsh_count

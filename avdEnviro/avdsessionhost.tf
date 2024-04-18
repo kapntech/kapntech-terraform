@@ -5,22 +5,14 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "3.91.0"
     }
-    azuread = {
-      source  = "hashicorp/azuread"
-    }
   }
   cloud {
     organization = "Kapntech"
     workspaces {
-      name = "kapntech-avd"
+      name = "kapntech-avd-sessionhosts"
 
     }
   }
-}
-
-provider "azurerm" {
-  features {}
-  subscription_id = var.avd_subscription_id
 }
 
 locals {
@@ -35,60 +27,62 @@ resource "random_string" "AVD_local_password" {
   override_special = "*!@#?"
 }
 
-resource "azurerm_network_interface" "nicavd" {
-  count               = var.avd_rdsh_count
-  name                = "nic${count.index + 1}-${var.avd_host_pool_session_host_vm_name_suffix}${count.index + 1}"
-  location            = azurerm_resource_group.avdprod.location
-  resource_group_name = azurerm_resource_group.avdprod.name
+resource "azurerm_resource_group" "rg" {
+  name     = var.rg
+  location = var.resource_group_location
+}
+
+resource "azurerm_network_interface" "avd_vm_nic" {
+  count               = var.rdsh_count
+  name                = "${var.prefix}-${count.index + 1}-nic"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
 
   ip_configuration {
-    name                          = "$nic${count.index + 1}_config"
-    subnet_id                     = azurerm_subnet.avdsubnet.id
-    private_ip_address_allocation = "Dynamic"
+    name                          = "nic${count.index + 1}_config"
+    subnet_id                     = azurerm_subnet.subnet.id
+    private_ip_address_allocation = "dynamic"
   }
 
   depends_on = [
-    azurerm_resource_group.avdprod
+    azurerm_resource_group.rg
   ]
 }
 
-resource "azurerm_windows_virtual_machine" "avdwin" {
-  count               = var.avd_rdsh_count
-  name                = "vm-${var.avd_host_pool_session_host_vm_name_suffix}${count.index + 1}"
-  resource_group_name = azurerm_resource_group.avdprod.name
-  location            = azurerm_resource_group.avdprod.location
-  size                = var.avd_vm_size
-
-  network_interface_ids = [
-    "${azurerm_network_interface.nicavd.*.id[count.index]}"
-  ]
-  provision_vm_agent = true
-  admin_username     = var.avd_vm_admin
-  admin_password     = var.avd_vm_admin_password
+resource "azurerm_windows_virtual_machine" "avd_vm" {
+  count                 = var.rdsh_count
+  name                  = "${var.prefix}-${count.index + 1}"
+  resource_group_name   = azurerm_resource_group.rg.name
+  location              = azurerm_resource_group.rg.location
+  size                  = var.vm_size
+  network_interface_ids = ["${azurerm_network_interface.avd_vm_nic.*.id[count.index]}"]
+  provision_vm_agent    = true
+  admin_username        = var.local_admin_username
+  admin_password        = var.local_admin_password
 
   os_disk {
-    name                 = "osdisk-${lower(var.avd_host_pool_session_host_vm_name_suffix)}-${count.index + 1}"
-    caching              = var.avd_vm_os_disk_caching
-    storage_account_type = var.avd_vm_os_disk_storage_account_type
+    name                 = "${lower(var.prefix)}-${count.index + 1}"
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
   }
 
   source_image_reference {
-    publisher = var.avd_vm_publisher
-    offer     = var.avd_vm_offer
-    sku       = var.avd_vm_sku
-    version   = var.avd_vm_version
+    publisher = "MicrosoftWindowsDesktop"
+    offer     = "Windows-10"
+    sku       = "20h2-evd"
+    version   = "latest"
   }
 
   depends_on = [
-    azurerm_resource_group.avdprod,
-    azurerm_network_interface.nicavd
+    azurerm_resource_group.rg,
+    azurerm_network_interface.avd_vm_nic
   ]
 }
 
 resource "azurerm_virtual_machine_extension" "domain_join" {
-  count                      = var.avd_rdsh_count
-  name                       = "vm-${var.avd_host_pool_session_host_vm_name_suffix}${count.index + 1}-domainjoin"
-  virtual_machine_id         = azurerm_windows_virtual_machine.avdwin[count.index].id
+  count                      = var.rdsh_count
+  name                       = "${var.prefix}-${count.index + 1}-domainJoin"
+  virtual_machine_id         = azurerm_windows_virtual_machine.avd_vm.*.id[count.index]
   publisher                  = "Microsoft.Compute"
   type                       = "JsonADDomainExtension"
   type_handler_version       = "1.3"
@@ -96,36 +90,33 @@ resource "azurerm_virtual_machine_extension" "domain_join" {
 
   settings = <<SETTINGS
     {
-        "Name": "${var.domain_name}",
-        "OUPath": "${var.ou_path}",
-        "User": "${var.domain_user_upn}@${var.domain_name}",
-        "Restart": "true",
-        "Options": "3"
+      "Name": "${var.domain_name}",
+      "OUPath": "${var.ou_path}",
+      "User": "${var.domain_user_upn}@${var.domain_name}",
+      "Restart": "true",
+      "Options": "3"
     }
 SETTINGS
 
   protected_settings = <<PROTECTED_SETTINGS
     {
-        "Password": "${var.domain_user_password}"
+      "Password": "${var.domain_password}"
     }
 PROTECTED_SETTINGS
 
   lifecycle {
-    ignore_changes = [
-      settings,
-      protected_settings
-    ]
+    ignore_changes = [settings, protected_settings]
   }
 
   depends_on = [
-    azurerm_virtual_network_peering.peering.peer1,
-    azurerm_virtual_network_peering.peering.peer2,
+    azurerm_virtual_network_peering.peer1,
+    azurerm_virtual_network_peering.peer2
   ]
 }
 
 resource "azurerm_virtual_machine_extension" "vmext_dsc" {
-  count                      = var.avd_rdsh_count
-  name                       = "vm-${var.avd_host_pool_session_host_vm_name_suffix}${count.index + 1}-avd_dsc"
+  count                      = var.rdsh_count
+  name                       = "${var.prefix}${count.index + 1}-avd_dsc"
   virtual_machine_id         = azurerm_windows_virtual_machine.avd_vm.*.id[count.index]
   publisher                  = "Microsoft.Powershell"
   type                       = "DSC"
@@ -154,35 +145,4 @@ PROTECTED_SETTINGS
     azurerm_virtual_machine_extension.domain_join,
     azurerm_virtual_desktop_host_pool.hostpool
   ]
-}
-
-resource "azurerm_dev_test_global_vm_shutdown_schedule" "devtestshutdownprod" {
-  virtual_machine_id = azurerm_windows_virtual_machine.avdwin.id
-  location           = azurerm_resource_group.avdprod.location
-  enabled            = true
-
-  daily_recurrence_time = "1700"
-  timezone              = "Central Standard Time"
-
-  notification_settings {
-    enabled = false
-  }
-
-}
-
-
-resource "azurerm_virtual_network" "vnetavd" {
-  name                = "vnet-${var.avd_vnet_name_suffix}"
-  location            = azurerm_resource_group.avdprod.location
-  resource_group_name = azurerm_resource_group.avdprod.name
-  address_space       = ["10.0.0.0/16"]
-  provider            = azurerm
-}
-
-resource "azurerm_subnet" "avdsubnet" {
-  name                 = "snet-${var.avd_subnet_name_suffix}"
-  resource_group_name  = azurerm_resource_group.avdprod.name
-  virtual_network_name = azurerm_virtual_network.vnetavd.name
-  address_prefixes     = var.avd_subnet_address_prefixes
-  provider             = azurerm
 }

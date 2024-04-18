@@ -8,6 +8,11 @@ output "azurerm_virtual_desktop_host_pool" {
   value       = azurerm_virtual_desktop_host_pool.avdhp1.name
 }
 
+output "azurerm_virtual_desktop_host_pool_id" {
+  description = "Name of the Azure Virtual Desktop host pool"
+  value       = azurerm_virtual_desktop_host_pool.avdhp1.id
+}
+
 output "azurerm_virtual_desktop_application_group" {
   description = "Name of the Azure Virtual Desktop DAG"
   value       = azurerm_virtual_desktop_application_group.avdag1.name
